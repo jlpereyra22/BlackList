@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { obtenerObservados } from "../queries/Observados";
+import RenderTabla from "./RenderTabla";
 
 function formatearFechaDDMMYYYY(ts, fallback = "—") {
   if (!Number.isFinite(ts)) return fallback;
@@ -14,10 +15,10 @@ function formatearFechaDDMMYYYY(ts, fallback = "—") {
 function canonTxt(v) {
   if (v == null) return "";
   return String(v)
-    .normalize("NFD")                 // separa diacríticos
-    .replace(/[\u0300-\u036f]/g, "")  // quita diacríticos
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
     .toLowerCase()
-    .replace(/[\s\W_]+/g, "");        // quita espacios y no alfanuméricos
+    .replace(/[\s\W_]+/g, "");
 }
 
 const CABECERAS = [
@@ -30,11 +31,8 @@ const CABECERAS = [
 
 /**
  * TablaDatos
- * - Controla paginación internamente con un único estado: page
- * - Soporta dos fuentes:
- *   - LOCAL (rowsPrefetch): filtra/ordena/pagina en cliente
- *   - REMOTO (API): delega el paginado al backend; muestra la página que llega
- * - En modo "news" muestra los últimos 5 por fecha y oculta paginación
+ * - Controla estado: fetch/local, búsqueda, orden, paginación.
+ * - Delega el markup de la tabla a <RenderTabla />.
  */
 export default function TablaDatos({ busqueda, modo = "all", rowsPrefetch = null }) {
   const source = Array.isArray(rowsPrefetch) ? "local" : "remote";
@@ -78,7 +76,6 @@ export default function TablaDatos({ busqueda, modo = "all", rowsPrefetch = null
           page: isNews ? 1 : page,
           pageSize,
           sort: isNews ? "fecha_desc" : sortApi,
-          // Importante: la API recibe la query cruda (puede que no soporte canonización)
           q: busqueda?.trim() ?? "",
           signal: ctrl.signal,
         });
@@ -126,9 +123,7 @@ export default function TablaDatos({ busqueda, modo = "all", rowsPrefetch = null
 
     if (isNews) {
       // últimos 5 por ts desc
-      return [...base]
-        .sort((a, b) => (b.ts || 0) - (a.ts || 0))
-        .slice(0, 5);
+      return [...base].sort((a, b) => (b.ts || 0) - (a.ts || 0)).slice(0, 5);
     }
 
     const qCanon = canonTxt(busqueda || "");
@@ -201,39 +196,32 @@ export default function TablaDatos({ busqueda, modo = "all", rowsPrefetch = null
     setPage(1);
   };
 
-  const keyForRow = (r, i) =>
+  // ====== funciones de render que pasan a RenderTabla ======
+  const getRowKey = (r, i) =>
     r.id ??
     `${r.persona ?? ""}|${r.oficina ?? ""}|${Number.isFinite(r.ts) ? r.ts : ""}|${i}`;
 
+  const getCell = (r, key) => {
+    switch (key) {
+      case "socios":
+        return Array.isArray(r.socios) ? r.socios.join(", ") : "—";
+      case "fecha":
+        return Number.isFinite(r.ts) ? formatearFechaDDMMYYYY(r.ts) : "—";
+      default:
+        return r[key] || "—";
+    }
+  };
+
   return (
     <div>
-      <table border="1" cellPadding="6" cellSpacing="0" style={{ width: "100%" }}>
-        <thead>
-          <tr>
-            {CABECERAS.map((c) => (
-              <th
-                key={c.key}
-                onClick={() => onClickHeader(c.key)}
-                style={{ cursor: c.sortable && !isNews ? "pointer" : "default" }}
-                title={c.sortable && !isNews ? "Ordenar" : ""}
-              >
-                {c.label}{c.sortable ? " ⮁" : ""}
-              </th>
-            ))}
-          </tr>
-        </thead>
-        <tbody>
-          {filasRender.map((r, i) => (
-            <tr key={keyForRow(r, i)}>
-              <td>{r.persona || "—"}</td>
-              <td>{r.observaciones || "—"}</td>
-              <td>{Array.isArray(r.socios) ? r.socios.join(", ") : "—"}</td>
-              <td>{r.oficina || "—"}</td>
-              <td>{Number.isFinite(r.ts) ? formatearFechaDDMMYYYY(r.ts) : "—"}</td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
+      <RenderTabla
+        headers={CABECERAS}
+        rows={filasRender}
+        onHeaderClick={onClickHeader}
+        isNews={isNews}
+        getRowKey={getRowKey}
+        getCell={getCell}
+      />
 
       {/* Paginación solo si no es "news" */}
       {!isNews && (
