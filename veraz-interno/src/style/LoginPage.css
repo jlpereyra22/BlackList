@@ -14,13 +14,13 @@
 /* Layout general */
 .login__page {
   min-height: 100dvh;
-  display: grid;
-  place-items: center;
+  display: flex;
+  justify-content: center;
   background: var(--app-bg, var(--bg));
-  padding: 24px;
+  padding: 32px 16px;
+  box-sizing: border-box;
 }
 
-/* Card */
 .login__card {
   width: 100%;
   max-width: 380px;
@@ -30,7 +30,9 @@
   border-radius: 16px;
   padding: 24px;
   box-shadow: 0 8px 28px rgba(0, 0, 0, 0.35);
+  margin: 0 auto;            /* 🔥 centrado y aire lateral garantizado */
 }
+
 
 .login__title {
   margin: 0 0 16px;
@@ -103,7 +105,52 @@
   cursor: not-allowed;
 }
 
-/* Responsive pequeñas mejoras */
-@media (max-width: 380px) {
-  .login__card { padding: 20px; }
+/* ===== Responsive (login con aire lateral y comportamiento híbrido) ===== */
+
+/* Base: garantizamos aire lateral y usamos flex para controlar alineación */
+.login__page {
+  /* estos pueden estar ya definidos arriba, los repito por claridad */
+  display: flex;
+  justify-content: center;
+  box-sizing: border-box;
+  padding: 32px 16px;            /* aire vertical y 16px fijos a los costados */
+}
+
+/* Desktop / tablet ≥ 768px: centrado vertical elegante */
+@media (min-width: 768px) {
+  .login__page { 
+    align-items: center;
+    padding: 48px 24px;          /* un poco más de respiración */
+  }
+}
+
+/* ≤ 1024px (reduce sutilmente el card) */
+@media (max-width: 1024px) {
+  .login__card { padding: 22px; border-radius: 14px; }
+}
+
+/* ≤ 768px (tablet y down): card algo más ancho y arriba con margen */
+@media (max-width: 768px) {
+  .login__page { 
+    align-items: flex-start;      /* 🔥 en mobile/tablet arranca arriba */
+    padding: 64px 16px 28px;      /* margen superior cómodo + aire lateral fijo */
+  }
+  .login__card { max-width: 420px; padding: 20px; }
+  .login__title { font-size: 1.4rem; }
+  .login__btn { height: 40px; }
+}
+
+/* ≤ 480px (mobile): ocupa ancho total, sin pegarse a los bordes */
+@media (max-width: 480px) {
+  .login__page { padding: 56px 16px 20px; } /* mantiene 16px laterales */
+  .login__card { max-width: 100%; padding: 16px; border-radius: 12px; }
+  .login__label { font-size: 0.9rem; }
+  .login__input { height: 38px; padding: 0 10px; }
+  .login__btn { height: 38px; }
+}
+
+/* ≤ 360px (mobile chico): no toques los lados; solo compactá el card */
+@media (max-width: 360px) {
+  .login__page { padding: 48px 16px 16px; } /* laterales siguen en 16px */
+  .login__card { padding: 14px; }
 }
