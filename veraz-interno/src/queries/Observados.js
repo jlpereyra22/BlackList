@@ -1,9 +1,6 @@
 // src/queries/observados.js
 const BASE_URL =
-  import.meta.env.VITE_API_BASE_URL ||
-  "https://script.google.com/macros/s/AKfycbzNnuSV0RXtVdW49uTKU1M9GLI1RQ0v9-HL0-wrRMy2MNXOQQcr7i0a2r1SZ0fbUSa6uw/exec?token=PaginaWebVerazParaquenoNosCaguennasGente";
-// incluye tu ?token=...
-
+  import.meta.env.VITE_API_BASE_URL 
 
 
 // helpers para cache y normalización
