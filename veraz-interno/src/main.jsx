@@ -1,14 +1,14 @@
-// src/main.jsx
-import { StrictMode } from "react";
+import React, { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
-
-// 👇 Import correcto (carpeta 'style' y 'Index.css' con I mayúscula)
 import "./style/Index.css";
 
-import App from "./App.jsx";
+import { AuthProvider } from "./auth/AuthProvider.jsx";
+import RootApp from "./RootApp.jsx";
 
 createRoot(document.getElementById("root")).render(
   <StrictMode>
-    <App />
+    <AuthProvider>
+      <RootApp />
+    </AuthProvider>
   </StrictMode>
 );

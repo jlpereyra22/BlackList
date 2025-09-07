@@ -52,6 +52,8 @@ export default function App() {
   const mostrarNovedades = () => setVista("news");
 
   const debeMostrarTabla = vista !== "welcome";
+  console.log("[ENV RAW]", import.meta.env);
+
 
   return (
     <div className="app">
