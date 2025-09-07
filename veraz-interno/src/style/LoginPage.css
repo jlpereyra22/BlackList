@@ -1,0 +1,109 @@
+/* Usa tu paleta (variables) con fallbacks para que no se rompa si falta alguna */
+:root {
+  /* Si ya tenés un variables.css global, podés omitir estos fallbacks */
+  --bg: #0f1220;
+  --surface: #232637;     /* card */
+  --text: #eef0f7;
+  --muted: #a9afc3;
+  --accent: #5b8cff;
+  --danger: #ff6b6b;
+  --ring: #8fb3ff;
+  --border: #2f3447;
+}
+
+/* Layout general */
+.login__page {
+  min-height: 100dvh;
+  display: grid;
+  place-items: center;
+  background: var(--app-bg, var(--bg));
+  padding: 24px;
+}
+
+/* Card */
+.login__card {
+  width: 100%;
+  max-width: 380px;
+  background: var(--surface);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 24px;
+  box-shadow: 0 8px 28px rgba(0, 0, 0, 0.35);
+}
+
+.login__title {
+  margin: 0 0 16px;
+  font-size: 1.5rem;
+  font-weight: 700;
+  letter-spacing: 0.2px;
+}
+
+/* Form */
+.login__form {
+  display: grid;
+  gap: 12px;
+}
+
+.login__label {
+  display: grid;
+  gap: 6px;
+  font-size: 0.95rem;
+  color: var(--muted);
+}
+
+.login__input {
+  height: 40px;
+  padding: 0 12px;
+  border-radius: 10px;
+  border: 1px solid var(--border);
+  background: rgba(255,255,255,0.04);
+  color: var(--text);
+  outline: none;
+  transition: border-color .15s ease, box-shadow .15s ease, background .15s ease;
+}
+
+.login__input::placeholder {
+  color: color-mix(in oklab, var(--muted) 80%, black);
+  opacity: .8;
+}
+
+.login__input:focus {
+  border-color: var(--ring);
+  box-shadow: 0 0 0 3px color-mix(in oklab, var(--ring) 25%, transparent);
+  background: rgba(255,255,255,0.06);
+}
+
+/* Error */
+.login__error {
+  margin: 4px 0 0;
+  color: var(--danger);
+  font-size: 0.9rem;
+}
+
+/* Botón */
+.login__btn {
+  height: 42px;
+  border: 0;
+  border-radius: 12px;
+  background: var(--accent);
+  color: white;
+  font-weight: 700;
+  letter-spacing: .2px;
+  cursor: pointer;
+  transition: transform .06s ease, filter .15s ease, opacity .15s ease;
+  margin-top: 4px;
+}
+
+.login__btn:hover { filter: brightness(1.05); }
+.login__btn:active { transform: translateY(1px); }
+.login__btn[disabled],
+.login__btn[aria-busy="true"] {
+  opacity: .7;
+  cursor: not-allowed;
+}
+
+/* Responsive pequeñas mejoras */
+@media (max-width: 380px) {
+  .login__card { padding: 20px; }
+}

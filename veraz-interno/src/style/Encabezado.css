@@ -1,99 +1,66 @@
-/* Header */
+/* === lo tuyo (sin cambios) === */
 .encabezado {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  padding: 12px 16px;
-  background: var(--panel);
-  border-bottom: 1px solid var(--border);
+  display: flex; align-items: center; gap: 12px;
+  padding: 12px 16px; background: var(--panel); border-bottom: 1px solid var(--border);
   flex-shrink: 0;
-  /* Sticky opcional:
-  position: sticky;
-  top: 0;
-  z-index: 10;
-  */
 }
-
-.encabezado h1 {
-  margin: 0;
-  flex: 1;
-  font-size: 22px;
-  font-weight: 600;
-  color: var(--text);
-}
+.encabezado h1 { margin: 0; flex: 1; font-size: 22px; font-weight: 600; color: var(--text); }
 
 .encabezado button {
-  padding: 8px 12px;
-  border: 1px solid var(--border);
-  background: var(--bg);
-  color: var(--text);
-  border-radius: 6px;
-  cursor: pointer;
-  font-size: 14px;
-  font-weight: 500;
+  padding: 8px 12px; border: 1px solid var(--border); background: var(--bg); color: var(--text);
+  border-radius: 6px; cursor: pointer; font-size: 14px; font-weight: 500;
   transition: background .2s ease, border-color .2s ease, opacity .15s ease;
 }
+.encabezado button:hover:not(:disabled) { background: var(--hover); }
+.encabezado button:disabled { opacity: .5; cursor: not-allowed; }
+.encabezado .sync { font-size: 12px; opacity: .7; color: var(--muted); }
 
-.encabezado button:hover:not(:disabled) {
-  background: var(--hover);
-}
-
-.encabezado button:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
-
-.encabezado .sync {
-  font-size: 12px;
-  opacity: 0.7;
-  color: var(--muted);
-}
-
-/* Visibilidad según viewport */
 .desktop-only { display: flex; gap: 8px; }
 .mobile-only  { display: none; position: relative; }
 
 .icon-btn {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 38px; height: 38px;
-  border-radius: 8px;
-  border: 1px solid var(--border);
-  background: var(--bg);
-  color: var(--text);
-  cursor: pointer;
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 38px; height: 38px; border-radius: 8px; border: 1px solid var(--border);
+  background: var(--bg); color: var(--text); cursor: pointer;
 }
 .icon-btn:hover:not(:disabled) { background: var(--hover); }
 .icon-btn:disabled { opacity: .5; cursor: not-allowed; }
 
-/* Dropdown mobile */
 .dropdown {
-  position: absolute;
-  right: 0;
-  top: 46px;
-  min-width: 200px;
-  background: var(--panel);
-  border: 1px solid var(--border);
-  border-radius: 10px;
-  padding: 6px;
-  box-shadow: 0 8px 28px rgba(0,0,0,.35);
-  z-index: 20;
+  position: absolute; right: 0; top: 46px; min-width: 220px;
+  background: var(--panel); border: 1px solid var(--border); border-radius: 10px; padding: 6px;
+  box-shadow: 0 8px 28px rgba(0,0,0,.35); z-index: 20;
 }
 .dropdown button {
-  width: 100%;
-  text-align: left;
-  background: transparent;
-  border: 0;
-  color: var(--text);
-  padding: 10px 12px;
-  border-radius: 8px;
-  cursor: pointer;
-  font-size: 14px;
+  width: 100%; text-align: left; background: transparent; border: 0; color: var(--text);
+  padding: 10px 12px; border-radius: 8px; cursor: pointer; font-size: 14px;
 }
 .dropdown button:hover { background: var(--hover); }
+.dropdown__sep { border: 0; height: 1px; background: var(--border); margin: 6px; }
+.dropdown__danger { color: #fff; background: var(--danger, #e23b3b); }
+.dropdown__danger:hover { background: color-mix(in oklab, var(--danger, #e23b3b) 92%, black); }
 
-/* Mobile switch */
+/* === nuevo: grupo usuario + botón rojo === */
+.enc-right { display: flex; gap: 12px; align-items: center; }
+
+.usergroup { display: flex; align-items: center; gap: 10px; }
+
+.userchip{
+  max-width: 260px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  color: var(--muted); background: rgba(255,255,255,.03);
+  border: 1px solid var(--border); border-radius: 999px; padding: 6px 10px; font-size: 13px;
+}
+
+/* Botón rojo consistente */
+.btn { border: 1px solid transparent; font-weight: 700; letter-spacing: .2px; }
+.btn--danger{
+  background: var(--danger, #e23b3b); color: #fff;
+  box-shadow: 0 6px 18px rgba(226,59,59,.25);
+}
+.btn--danger:hover { filter: brightness(1.05); }
+.btn--danger:active { filter: brightness(.96); }
+
+/* Mobile */
 @media (max-width: 640px) {
   .desktop-only { display: none; }
   .mobile-only  { display: block; }

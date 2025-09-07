@@ -1,13 +1,13 @@
 import './style/Index.css';
-import Encabezado from './components/Encabezado';
+// import Encabezado from './components/Encabezado'; // ❌ quitar
 import Buscador from './components/Buscador';
 import TablaDatos from './components/TablaDatos';
 import Pie from './components/Pie';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { getAllWithCache } from './queries/Observados';
 import { readCache } from './lib/cache';
 
-export default function App() {
+export default function App({ registerApi }) {
   const [busqueda, setBusqueda] = useState("");
   const [vista, setVista] = useState("welcome"); // welcome | all | news | search
 
@@ -48,20 +48,24 @@ export default function App() {
     if (valor.trim()) setVista("search");
   };
   const onLimpiar = () => { setBusqueda(""); setVista("welcome"); };
-  const mostrarTodo = () => setVista("all");
-  const mostrarNovedades = () => setVista("news");
+
+  // === Handlers que dispara el Encabezado (via RootApp) ===
+  function handleMostrarTodo() { setVista("all"); }
+  function handleNovedades()   { setVista("news"); }
+
+  // Registramos la "API" hacia RootApp una sola vez
+  const api = useMemo(() => ({
+    mostrarTodo: handleMostrarTodo,
+    novedades: handleNovedades,
+  }), []);
+  useEffect(() => { registerApi?.(api); }, [registerApi, api]);
 
   const debeMostrarTabla = vista !== "welcome";
   console.log("[ENV RAW]", import.meta.env);
 
-
   return (
     <div className="app">
-      <Encabezado
-        onMostrarTodo={mostrarTodo}
-        onNovedades={mostrarNovedades}
-        ready={Array.isArray(prefetched)}
-      />
+      {/* Encabezado lo pinta RootApp: NO renderizarlo aquí */}
 
       <main className="contenido">
         <Buscador valor={busqueda} onCambio={onBuscar} onLimpiar={onLimpiar} />

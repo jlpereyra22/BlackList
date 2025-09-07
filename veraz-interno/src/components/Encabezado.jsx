@@ -1,9 +1,12 @@
 import { useEffect, useRef, useState } from "react";
+import { useAuth } from "../auth/AuthProvider";
 import "../style/Encabezado.css";
 
 export default function Encabezado({ onMostrarTodo, onNovedades, ready = false }) {
   const [open, setOpen] = useState(false);
   const menuRef = useRef(null);
+
+  const { user, signOut } = useAuth();
 
   // Cierra dropdown si clic fuera
   useEffect(() => {
@@ -21,23 +24,33 @@ export default function Encabezado({ onMostrarTodo, onNovedades, ready = false }
     <header className="encabezado">
       <h1>Veraz Interno</h1>
 
-      {/* Acciones desktop (sin cambios) */}
-      <div className="enc-actions desktop-only">
-        <button onClick={onMostrarTodo} disabled={!ready}>Mostrar todo</button>
-        <button onClick={onNovedades}   disabled={!ready}>Novedades (últimos 5)</button>
+      {/* Acciones + usuario (desktop) */}
+      <div className="enc-right desktop-only">
+        <div className="enc-actions">
+          <button onClick={onMostrarTodo} disabled={!ready}>Mostrar todo</button>
+          <button onClick={onNovedades}   disabled={!ready}>Novedades (últimos 5)</button>
+        </div>
+
+        <div className="usergroup">
+          {user?.email && (
+            <span className="userchip" title={user.email}>
+              {user.email}
+            </span>
+          )}
+          <button className="btn btn--danger" onClick={signOut}>Salir</button>
+        </div>
       </div>
 
-      {/* Menú hamburguesa mobile */}
+      {/* Menú hamburguesa (mobile) */}
       <div className="enc-menu mobile-only" ref={menuRef}>
         <button
           className="icon-btn"
           aria-haspopup="true"
           aria-expanded={open}
           aria-label="Abrir menú"
-          onClick={() => setOpen((v) => !v)}
-          disabled={!ready}
+          onClick={() => setOpen(v => !v)}
+          disabled={!ready && !user}
         >
-          {/* ícono simple */}
           <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
             <line x1="3" y1="6"  x2="21" y2="6" />
             <line x1="3" y1="12" x2="21" y2="12" />
@@ -49,6 +62,10 @@ export default function Encabezado({ onMostrarTodo, onNovedades, ready = false }
           <div className="dropdown" role="menu">
             <button role="menuitem" onClick={callAndClose(onMostrarTodo)}>Mostrar todo</button>
             <button role="menuitem" onClick={callAndClose(onNovedades)}>Novedades (últimos 5)</button>
+            <hr className="dropdown__sep" />
+            <button role="menuitem" className="dropdown__danger" onClick={() => { setOpen(false); signOut(); }}>
+              Salir
+            </button>
           </div>
         )}
       </div>

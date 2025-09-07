@@ -1,23 +1,27 @@
-// NO toco tu App.jsx. Acá decido si mostrar Login o tu App.
+// src/RootApp.jsx
+import { useRef } from "react";
 import { useAuth } from "./auth/AuthProvider";
 import LoginPage from "./pages/LoginPage";
-import App from "./App.jsx"; // tu app actual
+import Encabezado from "./components/Encabezado";
+import App from "./App";
 
 export default function RootApp() {
-  const { user, initializing, signOut } = useAuth();
+  const { user, initializing } = useAuth();
+
+  // Puente: acá se registran los handlers reales que vive en App
+  const appApiRef = useRef({ mostrarTodo: () => {}, novedades: () => {} });
 
   if (initializing) return <p>Cargando sesión...</p>;
   if (!user) return <LoginPage />;
 
-  // Usuario logueado: muestro tu App tal cual
   return (
     <>
-      {/* si querés, sacá este header */}
-      <header style={{ display: "flex", gap: 12, alignItems: "center", padding: 8 }}>
-        <span>Hola, {user.email}</span>
-        <button onClick={signOut}>Salir</button>
-      </header>
-      <App />
+      <Encabezado
+        ready={true}
+        onMostrarTodo={() => appApiRef.current.mostrarTodo()}
+        onNovedades={() => appApiRef.current.novedades()}
+      />
+      <App registerApi={(api) => Object.assign(appApiRef.current, api)} />
     </>
   );
 }
