@@ -103,3 +103,16 @@
   opacity: .9;
   font-size: 14px;
 }
+
+
+/* Solo phones: esconde columnas >= 3 y hace la fila clickeable. */
+@media (max-width: 640px) {
+  .tabla th.hide-mobile,
+  .tabla td.hide-mobile {
+    display: none;
+  }
+
+  .tabla td, .tabla th { padding: 10px; font-size: 14px; }
+  .tabla tbody tr.row-mobile { cursor: pointer; }
+  .tabla tbody tr.row-mobile:active { transform: translateY(0.5px); }
+}

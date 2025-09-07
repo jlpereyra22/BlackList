@@ -41,3 +41,22 @@ body {
   padding: 16px;
   overflow-y: auto;
 }
+
+/* ======= Responsive phones ======= */
+/* Small phones (<=360px) */
+@media (max-width: 360px) {
+  body { font-size: 14px; }
+  .contenido { padding: 12px; }
+}
+
+/* Medium phones (361–480px) */
+@media (min-width: 361px) and (max-width: 480px) {
+  body { font-size: 15px; }
+  .contenido { padding: 14px; }
+}
+
+/* Large phones (481–640px) */
+@media (min-width: 481px) and (max-width: 640px) {
+  body { font-size: 15px; }
+  .contenido { padding: 16px; }
+}

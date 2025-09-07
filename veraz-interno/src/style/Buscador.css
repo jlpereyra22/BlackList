@@ -73,3 +73,21 @@
 .buscador button:hover { background: var(--hover); }
 .buscador button:active { transform: translateY(0.5px); }
 .buscador button:disabled { opacity: .6; cursor: not-allowed; }
+
+
+/* Mobile phones */
+@media (max-width: 640px) {
+  .buscador {
+    margin: 16px 0;
+    gap: 10px;
+  }
+  .buscador input {
+    width: 100%;
+    font-size: 16px;
+    padding: 14px 16px 14px 44px;
+  }
+  .buscador button {
+    padding: 10px 12px;
+    font-size: 13.5px;
+  }
+}
