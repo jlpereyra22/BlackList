@@ -1,0 +1,50 @@
+/* Header */
+.encabezado {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+  background: var(--panel);
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+  /* Sticky opcional:
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  */
+}
+
+.encabezado h1 {
+  margin: 0;
+  flex: 1;
+  font-size: 22px;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.encabezado button {
+  padding: 8px 12px;
+  border: 1px solid var(--border);
+  background: var(--bg);
+  color: var(--text);
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 500;
+  transition: background .2s ease, border-color .2s ease, opacity .15s ease;
+}
+
+.encabezado button:hover:not(:disabled) {
+  background: var(--hover);
+}
+
+.encabezado button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.encabezado .sync {
+  font-size: 12px;
+  opacity: 0.7;
+  color: var(--muted);
+}

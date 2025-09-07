@@ -1,0 +1,105 @@
+/* Contenedor de la tabla */
+.tabla-wrap {
+  margin-top: 16px;
+}
+
+/* Estados */
+.tabla-wrap .estado {
+  margin: 12px 0;
+  color: var(--muted);
+}
+
+/* Tabla */
+.tabla {
+  width: 100%;
+  border-collapse: collapse;
+  background: color-mix(in srgb, var(--bg) 85%, black);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  overflow: hidden; /* redondeo real */
+}
+
+.tabla th,
+.tabla td {
+  padding: 10px 12px;
+  border-right: 1px solid var(--border);
+  border-bottom: 1px solid var(--border);
+}
+
+.tabla th:last-child,
+.tabla td:last-child {
+  border-right: none;
+}
+
+.tabla thead th {
+  background: color-mix(in srgb, var(--panel) 85%, black);
+  color: var(--text);
+  font-weight: 600;
+  font-size: 15px;
+  position: sticky;  /* útil si el contenedor scrollea */
+  top: 0;
+  z-index: 1;
+}
+
+.tabla td {
+  font-size: 15px;
+  font-weight: 400;
+}
+
+.tabla tbody tr:nth-child(even) {
+  background: color-mix(in srgb, var(--bg) 80%, black);
+}
+
+.tabla tbody tr:hover {
+  background: color-mix(in srgb, var(--bg) 70%, black);
+}
+
+/* Cabeceras clickeables */
+.tabla th.sortable {
+  cursor: pointer;
+}
+
+.tabla th.sortable:hover {
+  background: color-mix(in srgb, var(--panel) 75%, black);
+}
+
+.tabla th.sortable::after {
+  content: " ⮁";
+  opacity: .7;
+  font-weight: 400;
+}
+
+/* Paginación */
+.paginacion {
+  margin-top: 12px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: var(--text);
+}
+
+.paginacion .btn {
+  padding: 8px 12px;
+  border: 1px solid var(--border);
+  background: var(--panel);
+  color: var(--text);
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 500;
+  transition: background .15s ease, opacity .15s ease;
+}
+
+.paginacion .btn:hover:not(:disabled) {
+  background: var(--hover);
+}
+
+.paginacion .btn:disabled {
+  opacity: .5;
+  cursor: not-allowed;
+}
+
+.paginacion .info {
+  opacity: .9;
+  font-size: 14px;
+}

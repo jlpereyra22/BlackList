@@ -1,18 +1,16 @@
 import { useEffect, useRef, useState } from "react";
+import "../style/Buscador.css";
 
 export default function Buscador({ valor, onCambio, onLimpiar }) {
   const [local, setLocal] = useState(valor ?? "");
   const timeoutRef = useRef(null);
 
-  // Sincroniza cambios externos (ej. limpiar desde App)
   useEffect(() => setLocal(valor ?? ""), [valor]);
 
-  // Debounce controlado con ref (evita carreras al limpiar)
+  // debounce robusto
   useEffect(() => {
     if (timeoutRef.current) clearTimeout(timeoutRef.current);
-    timeoutRef.current = setTimeout(() => {
-      onCambio(local);
-    }, 300);
+    timeoutRef.current = setTimeout(() => onCambio(local), 300);
     return () => {
       if (timeoutRef.current) {
         clearTimeout(timeoutRef.current);
@@ -22,23 +20,22 @@ export default function Buscador({ valor, onCambio, onLimpiar }) {
   }, [local, onCambio]);
 
   const limpiar = () => {
-    // Cancela cualquier disparo pendiente con el valor viejo
     if (timeoutRef.current) {
       clearTimeout(timeoutRef.current);
       timeoutRef.current = null;
     }
     setLocal("");
-    onCambio("");      // dispara inmediato sin debounce
+    onCambio("");      // sin debounce
     onLimpiar?.();     // vuelve a 'welcome'
   };
 
   return (
-    <section style={{ margin: "12px 0", display: "flex", gap: 8 }}>
+    <section className="buscador">
       <input
         value={local}
         onChange={(e) => setLocal(e.target.value)}
         placeholder="Buscar persona, oficina, socio u observación…"
-        style={{ flex: 1, padding: 8 }}
+        aria-label="Buscar"
       />
       <button onClick={limpiar}>Limpiar</button>
     </section>

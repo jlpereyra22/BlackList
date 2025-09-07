@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { obtenerObservados } from "../queries/Observados";
 import RenderTabla from "./RenderTabla";
+import "../style/TablaDatos.css";
 
 function formatearFechaDDMMYYYY(ts, fallback = "—") {
   if (!Number.isFinite(ts)) return fallback;
@@ -29,29 +30,19 @@ const CABECERAS = [
   { key: "fecha",         label: "Fecha",         sortable: true  },
 ];
 
-/**
- * TablaDatos
- * - Controla estado: fetch/local, búsqueda, orden, paginación.
- * - Delega el markup de la tabla a <RenderTabla />.
- */
 export default function TablaDatos({ busqueda, modo = "all", rowsPrefetch = null }) {
   const source = Array.isArray(rowsPrefetch) ? "local" : "remote";
   const isNews = modo === "news";
 
-  // Config de página/orden
   const [page, setPage] = useState(1);
   const pageSize = isNews ? 5 : 10;
 
-  // Sort unificado (key + dir) para UI; en remoto se traduce a sort API
   const [sortKey, setSortKey] = useState("fecha");
-  const [sortDir, setSortDir] = useState("desc"); // "asc" | "desc"
+  const [sortDir, setSortDir] = useState("desc");
 
-  // Reset de página por cambios semánticos (NO por cambio de fuente)
   useEffect(() => { setPage(1); }, [busqueda, isNews, sortKey, sortDir]);
 
-  // =======================
-  // REMOTO (API)
-  // =======================
+  // ------- REMOTO -------
   const [filasRemote, setFilasRemote] = useState([]);
   const [totalRemote, setTotalRemote] = useState(0);
   const [cargando, setCargando] = useState(false);
@@ -59,7 +50,7 @@ export default function TablaDatos({ busqueda, modo = "all", rowsPrefetch = null
   const abortRef = useRef(null);
 
   useEffect(() => {
-    if (source === "local") return; // hay prefetch: no pedir remoto
+    if (source === "local") return;
 
     let cancelado = false;
     (async () => {
@@ -71,7 +62,7 @@ export default function TablaDatos({ busqueda, modo = "all", rowsPrefetch = null
         const ctrl = new AbortController();
         abortRef.current = ctrl;
 
-        const sortApi = `${sortKey}_${sortDir}`; // ej: "fecha_desc"
+        const sortApi = `${sortKey}_${sortDir}`;
         const resp = await obtenerObservados({
           page: isNews ? 1 : page,
           pageSize,
@@ -107,22 +98,17 @@ export default function TablaDatos({ busqueda, modo = "all", rowsPrefetch = null
   }, [page, pageSize, sortKey, sortDir, busqueda, isNews, source]);
 
   const totalPagesRemote = Math.max(1, Math.ceil(totalRemote / pageSize));
-
-  // Clamp para remoto cuando cambia el total o el pageSize
   useEffect(() => {
     if (source !== "remote" || isNews) return;
     setPage((p) => Math.min(Math.max(1, p), totalPagesRemote));
   }, [totalPagesRemote, pageSize, source, isNews]);
 
-  // =======================
-  // LOCAL (prefetch) con búsqueda "generosa"
-  // =======================
+  // ------- LOCAL -------
   const datasetLocal = useMemo(() => {
     if (source !== "local") return [];
     let base = rowsPrefetch;
 
     if (isNews) {
-      // últimos 5 por ts desc
       return [...base].sort((a, b) => (b.ts || 0) - (a.ts || 0)).slice(0, 5);
     }
 
@@ -149,7 +135,6 @@ export default function TablaDatos({ busqueda, modo = "all", rowsPrefetch = null
         const B = Number.isFinite(b.ts) ? b.ts : -Infinity;
         return (A - B) * factor;
       }
-      // Para orden estable también canonizamos strings
       const A = canonTxt(a[sortKey]);
       const B = canonTxt(b[sortKey]);
       return A.localeCompare(B) * factor;
@@ -159,7 +144,6 @@ export default function TablaDatos({ busqueda, modo = "all", rowsPrefetch = null
   const totalLocal = datasetLocal.length;
   const totalPagesLocal = Math.max(1, Math.ceil(totalLocal / pageSize));
 
-  // Clamp page si el filtro reduce páginas (local)
   useEffect(() => {
     if (source !== "local" || isNews) return;
     setPage((p) => Math.min(Math.max(1, p), totalPagesLocal));
@@ -169,17 +153,17 @@ export default function TablaDatos({ busqueda, modo = "all", rowsPrefetch = null
     ? datasetLocal
     : datasetLocal.slice((page - 1) * pageSize, page * pageSize);
 
-  // =======================
-  // DERIVADOS PARA RENDER
-  // =======================
-  if (source === "remote" && cargando) return <p>Cargando…</p>;
-  if (source === "remote" && error)    return <p>Error: {error}</p>;
+  // ------- DERIVADOS -------
+  if (source === "remote" && cargando)
+    return <p className="estado">Cargando…</p>;
+  if (source === "remote" && error)
+    return <p className="estado">Error: {error}</p>;
 
   const filasRender = source === "local" ? filasLocal : filasRemote;
   const totalRows   = source === "local" ? totalLocal : totalRemote;
   const totalPages  = source === "local" ? totalPagesLocal : totalPagesRemote;
 
-  if (!filasRender.length) return <p>No hay datos cargados.</p>;
+  if (!filasRender.length) return <p className="estado">No hay datos cargados.</p>;
 
   const canPrev = !isNews && page > 1;
   const canNext = !isNews && page < totalPages;
@@ -188,15 +172,13 @@ export default function TablaDatos({ busqueda, modo = "all", rowsPrefetch = null
   const goNext = () => setPage((p) => Math.min(totalPages, p + 1));
 
   const onClickHeader = (k) => {
-    if (isNews) return; // news: fijo fecha_desc
+    if (isNews) return;
     if (!CABECERAS.find((c) => c.key === k)?.sortable) return;
-
     if (sortKey === k) setSortDir((d) => (d === "asc" ? "desc" : "asc"));
     else { setSortKey(k); setSortDir("asc"); }
     setPage(1);
   };
 
-  // ====== funciones de render que pasan a RenderTabla ======
   const getRowKey = (r, i) =>
     r.id ??
     `${r.persona ?? ""}|${r.oficina ?? ""}|${Number.isFinite(r.ts) ? r.ts : ""}|${i}`;
@@ -213,7 +195,7 @@ export default function TablaDatos({ busqueda, modo = "all", rowsPrefetch = null
   };
 
   return (
-    <div>
+    <div className="tabla-wrap">
       <RenderTabla
         headers={CABECERAS}
         rows={filasRender}
@@ -223,12 +205,11 @@ export default function TablaDatos({ busqueda, modo = "all", rowsPrefetch = null
         getCell={getCell}
       />
 
-      {/* Paginación solo si no es "news" */}
       {!isNews && (
-        <div style={{ marginTop: 12, display: "flex", gap: 8, alignItems: "center" }}>
-          <button onClick={goPrev} disabled={!canPrev}>◀ Anterior</button>
-          <span> Página {page} de {totalPages} (total {totalRows}) </span>
-          <button onClick={goNext} disabled={!canNext}>Siguiente ▶</button>
+        <div className="paginacion">
+          <button className="btn" onClick={goPrev} disabled={!canPrev}>◀ Anterior</button>
+          <span className="info">Página {page} de {totalPages} (total {totalRows})</span>
+          <button className="btn" onClick={goNext} disabled={!canNext}>Siguiente ▶</button>
         </div>
       )}
     </div>

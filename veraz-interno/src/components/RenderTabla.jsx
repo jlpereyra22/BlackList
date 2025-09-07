@@ -1,4 +1,5 @@
 import React from "react";
+import "../style/TablaDatos.css";
 
 /**
  * RenderTabla
@@ -6,10 +7,10 @@ import React from "react";
  * - Props:
  *   - headers: [{ key, label, sortable }]
  *   - rows: array de filas ya filtradas/paginadas
- *   - onHeaderClick: (key) => void  (para ordenar)
+ *   - onHeaderClick: (key) => void
  *   - isNews: boolean (para desactivar sort visual si hace falta)
  *   - getRowKey: (row, index) => string
- *   - getCell: (row, key) => ReactNode  (cómo renderizar cada celda por columna)
+ *   - getCell: (row, key) => ReactNode
  */
 export default function RenderTabla({
   headers,
@@ -20,25 +21,22 @@ export default function RenderTabla({
   getCell,
 }) {
   return (
-    <table
-      border="1"
-      cellPadding="6"
-      cellSpacing="0"
-      style={{ width: "100%" }}
-    >
+    <table className="tabla">
       <thead>
         <tr>
-          {headers.map((c) => (
-            <th
-              key={c.key}
-              onClick={() => (c.sortable && !isNews ? onHeaderClick?.(c.key) : null)}
-              style={{ cursor: c.sortable && !isNews ? "pointer" : "default" }}
-              title={c.sortable && !isNews ? "Ordenar" : ""}
-            >
-              {c.label}
-              {c.sortable ? " ⮁" : ""}
-            </th>
-          ))}
+          {headers.map((c) => {
+            const canSort = c.sortable && !isNews;
+            return (
+              <th
+                key={c.key}
+                className={canSort ? "sortable" : undefined}
+                onClick={() => (canSort ? onHeaderClick?.(c.key) : null)}
+                title={canSort ? "Ordenar" : ""}
+              >
+                {c.label}
+              </th>
+            );
+          })}
         </tr>
       </thead>
       <tbody>
