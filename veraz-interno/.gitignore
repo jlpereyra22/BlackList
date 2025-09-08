@@ -1,33 +1,44 @@
-# Dependencias
+# ===== Dependencias =====
 node_modules/
 
-# Builds
+# ===== Builds =====
 dist/
 build/
 
-# Archivos de entorno
+# ===== Archivos de entorno (¡no subir secretos!) =====
 .env
-.env.*        # .env.local, .env.development, etc.
+.env.*          # .env.local, .env.development, etc.
+!.env.example   # PERMITIR subir una plantilla sin secretos
 
-# Logs
+# ===== Logs =====
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 pnpm-debug.log*
 *.log
 
-# IDE / Editor
+# ===== IDE / Editor =====
 .vscode/
 .idea/
 *.swp
 
-# Sistema operativo
+# ===== SO =====
 .DS_Store
 Thumbs.db
+desktop.ini
 
-# Cache varias
+# ===== Cachés =====
 .cache/
 *.local
+.eslintcache
+# Vite cache (a veces aparece)
+.vite/
+# Netlify CLI (local)
+.netlify/
 
-# Test coverage
+# ===== Test coverage =====
 coverage/
+
+# ===== Varias =====
+# Si usás TypeScript, podés ignorar tsbuildinfo
+*.tsbuildinfo
