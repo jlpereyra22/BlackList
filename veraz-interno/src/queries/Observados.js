@@ -1,72 +1,119 @@
-// src/queries/observados.js
-const BASE_URL =
-  import.meta.env.VITE_API_BASE_URL 
-
-
-// helpers para cache y normalización
-import { readCache, writeCache, isFresh } from '../lib/cache';
+// src/queries/Observados.js
 import { normalizarConjunto } from '../lib/normalizar';
+import {
+  getFirestore,
+  collection,
+  getDocs,
+  query,
+  orderBy,
+  addDoc,
+  updateDoc,
+  deleteDoc,
+  doc,
+  serverTimestamp,
+  onSnapshot,
+} from 'firebase/firestore';
+import { app } from '../firebase';
 
-function construirURL({ page = 1, pageSize = 10, sort = "fecha_desc", q = "" } = {}) {
-  const url = new URL(BASE_URL);
-  url.searchParams.set("route", "list");
-  url.searchParams.set("page", String(page));
-  url.searchParams.set("pageSize", String(pageSize));
-  url.searchParams.set("sort", sort);
-  if (q) url.searchParams.set("q", q);
-  return url.toString();
+const db = getFirestore(app);
+// ⚠️ EXACTO como está en Firestore (O mayúscula)
+const COL = 'Observados';
+
+// -- helpers: mapear campos a un shape estándar para la UI
+function mapDoc(d) {
+  const data = d.data() || {};
+  // soportar snake_case y camelCase
+  const createdAt = data.created_at ?? data.createdAt ?? null;
+  const updatedAt = data.updated_at ?? data.updatedAt ?? null;
+  const owner     = data.owner_uid  ?? data.owner     ?? null;
+
+  return {
+    id: d.id,
+    persona: data.persona ?? '',
+    oficina: data.oficina ?? '',
+    socios: data.socios ?? '',
+    observaciones: data.observaciones ?? '',
+    fecha: data.fecha ?? null,
+    createdAt,
+    updatedAt,
+    owner,
+    // por si tu normalizador espera el objeto entero
+    ...data,
+  };
 }
 
-export async function obtenerObservados({ page = 1, pageSize = 10, sort = "fecha_desc", q = "" } = {}) {
-  if (!BASE_URL) return { ok: false, error: "config", items: [], total: 0, page, pageSize };
+// ===== Lectura =====
+export async function getAll() {
+  // primero intentamos ordenar por created_at (como está en tu DB),
+  // si falla (p.ej. índice), hacemos fallback sin orden
   try {
-    const res = await fetch(construirURL({ page, pageSize, sort, q }));
-    const json = await res.json();
-    return json;
-  } catch {
-    return { ok: false, error: "network", items: [], total: 0, page, pageSize };
+    const q = query(collection(db, COL), orderBy('created_at', 'desc'));
+    const snap = await getDocs(q);
+    const items = snap.docs.map(mapDoc);
+    return normalizarConjunto(items);
+  } catch (e) {
+    const snap = await getDocs(collection(db, COL));
+    const items = snap.docs.map(mapDoc);
+    // ordenar en memoria por si no pudimos con Firestore
+    items.sort((a, b) => (b.createdAt?.toMillis?.() ?? 0) - (a.createdAt?.toMillis?.() ?? 0));
+    return normalizarConjunto(items);
   }
 }
 
-// ==== NUEVO: traer TODO en background y cachear (SWR casero) ====
-
-const CACHE_KEY_ALL = 'observados_all';
-
-export async function fetchAllObservadosPaginado({ pageSize = 1000 } = {}) {
-  // Itera páginas del Apps Script (usa tus mismos params)
-  let page = 1;
-  let total = Infinity;
-  const acc = [];
-
-  while ((page - 1) * pageSize < total) {
-    const resp = await obtenerObservados({ page, pageSize, sort: 'fecha_desc', q: '' });
-    if (!resp?.ok) {
-      return { ok: false, error: resp?.error || 'fetch_all_failed' };
-    }
-    const items = resp.items || [];
-    total = resp.total ?? items.length;
-    acc.push(...items);
-    if (!items.length) break;
-    page += 1;
-  }
-  return { ok: true, items: acc, total: acc.length };
+// Tiempo real (opcional)
+export function subscribeAll(cb) {
+  // si querés orden server-side, asegurate de tener el campo created_at y el índice
+  const qRef = query(collection(db, COL), orderBy('created_at', 'desc'));
+  return onSnapshot(qRef, (snap) => {
+    const items = snap.docs.map(mapDoc);
+    cb(normalizarConjunto(items));
+  }, (err) => {
+    // fallback sin orden si la suscripción falla por índice
+    const unsub = onSnapshot(collection(db, COL), (snap2) => {
+      const items = snap2.docs.map(mapDoc).sort(
+        (a, b) => (b.createdAt?.toMillis?.() ?? 0) - (a.createdAt?.toMillis?.() ?? 0)
+      );
+      cb(normalizarConjunto(items));
+    });
+    return () => unsub();
+  });
 }
 
-export async function getAllWithCache({ ttlMs = 5 * 60 * 1000 } = {}) {
-  const cached = readCache(CACHE_KEY_ALL);
-  if (isFresh(cached)) {
-    return { fromCache: true, data: cached.data, fetchedAt: cached.fetchedAt };
-  }
-
-  const resp = await fetchAllObservadosPaginado({ pageSize: 1000 });
-  if (!resp.ok) {
-    if (cached?.data?.length) {
-      return { fromCache: true, data: cached.data, fetchedAt: cached.fetchedAt, stale: true };
-    }
-    return { error: resp.error || 'no_data' };
-  }
-
-  const normalizado = normalizarConjunto(resp.items);
-  writeCache(CACHE_KEY_ALL, { data: normalizado, fetchedAt: Date.now(), ttlMs });
-  return { fromCache: false, data: normalizado, fetchedAt: Date.now() };
+// ===== Escritura (consistente con tu DB actual: snake_case) =====
+export async function create(item, { owner } = {}) {
+  const payload = {
+    persona: item.persona ?? '',
+    oficina: item.oficina ?? '',
+    socios: item.socios ?? '',
+    observaciones: item.observaciones ?? '',
+    fecha: item.fecha ?? null,
+    owner_uid: owner ?? null,
+    created_at: serverTimestamp(),
+    updated_at: serverTimestamp(),
+  };
+  const ref = await addDoc(collection(db, COL), payload);
+  return { id: ref.id, ...payload };
 }
+
+export async function update(id, patch = {}) {
+  const ref = doc(db, COL, id);
+  const toSet = {
+    ...(patch.persona !== undefined ? { persona: patch.persona } : {}),
+    ...(patch.oficina !== undefined ? { oficina: patch.oficina } : {}),
+    ...(patch.socios !== undefined ? { socios: patch.socios } : {}),
+    ...(patch.observaciones !== undefined ? { observaciones: patch.observaciones } : {}),
+    ...(patch.fecha !== undefined ? { fecha: patch.fecha } : {}),
+    updated_at: serverTimestamp(),
+  };
+  await updateDoc(ref, toSet);
+  return true;
+}
+
+export async function remove(id) {
+  const ref = doc(db, COL, id);
+  await deleteDoc(ref);
+  return true;
+}
+
+// Alias opcional por compatibilidad con código viejo
+export { getAll as obtenerObservados };

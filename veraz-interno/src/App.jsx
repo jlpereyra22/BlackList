@@ -1,86 +1,107 @@
+// src/App.jsx
 import './style/Index.css';
-// import Encabezado from './components/Encabezado'; // ❌ quitar
 import Buscador from './components/Buscador';
 import TablaDatos from './components/TablaDatos';
 import Pie from './components/Pie';
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { getAllWithCache } from './queries/Observados';
-import { readCache } from './lib/cache';
+import { subscribeAll, create, update, remove } from './queries/Observados';
+import { useAuth } from './auth/AuthProvider'; // ya lo tenés
 
 export default function App({ registerApi }) {
+  const { user } = useAuth(); // para owner
   const [busqueda, setBusqueda] = useState("");
   const [vista, setVista] = useState("welcome"); // welcome | all | news | search
 
-  // Hidratación instantánea desde cache
-  const [prefetched, setPrefetched] = useState(() => {
-    const cached = readCache('observados_all');
-    return Array.isArray(cached?.data) ? cached.data : null;
-  });
-  const [loadingPrefetch, setLoadingPrefetch] = useState(false);
-  const [errorPrefetch, setErrorPrefetch] = useState("");
-  const didPrefetch = useRef(false);
+  const [rows, setRows] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
 
+  // Suscripción en tiempo real
   useEffect(() => {
-    if (didPrefetch.current) return;
-    didPrefetch.current = true;
-
-    let alive = true;
-    (async () => {
-      try {
-        setLoadingPrefetch(true);
-        setErrorPrefetch("");
-        const res = await getAllWithCache({ ttlMs: 5 * 60 * 1000 });
-        if (!alive) return;
-        if (res?.error) setErrorPrefetch(res.error);
-        else if (Array.isArray(res?.data)) setPrefetched(res.data);
-      } catch (e) {
-        if (alive) setErrorPrefetch(e?.message || "prefetch_error");
-      } finally {
-        if (alive) setLoadingPrefetch(false);
-      }
-    })();
-
-    return () => { alive = false; };
+    setLoading(true);
+    const unsub = subscribeAll((data) => {
+      setRows(Array.isArray(data) ? data : []);
+      setLoading(false);
+    });
+    return () => unsub();
   }, []);
 
+  // Filtro local por búsqueda (ajustá a tus campos)
+  const filtered = useMemo(() => {
+    const q = busqueda.trim().toLowerCase();
+    if (!q) return rows;
+    return rows.filter(r =>
+      (r.persona || "").toLowerCase().includes(q) ||
+      (r.oficina || "").toLowerCase().includes(q) ||
+      (r.socios || "").toLowerCase().includes(q) ||
+      (r.observaciones || "").toLowerCase().includes(q)
+    );
+  }, [rows, busqueda]);
+
+  // Handlers CRUD
+  async function handleCrear(formData) {
+    try {
+      await create(formData, { owner: user?.uid || null });
+    } catch (e) {
+      console.error(e);
+      setError(e?.message || "create_error");
+    }
+  }
+
+  async function handleEditar(id, patch) {
+    try {
+      await update(id, patch);
+    } catch (e) {
+      console.error(e);
+      setError(e?.message || "update_error");
+    }
+  }
+
+  async function handleEliminar(id) {
+    try {
+      await remove(id);
+    } catch (e) {
+      console.error(e);
+      setError(e?.message || "remove_error");
+    }
+  }
+
+  // Buscar
   const onBuscar = (valor) => {
     setBusqueda(valor);
     if (valor.trim()) setVista("search");
   };
   const onLimpiar = () => { setBusqueda(""); setVista("welcome"); };
 
-  // === Handlers que dispara el Encabezado (via RootApp) ===
-  function handleMostrarTodo() { setVista("all"); }
-  function handleNovedades()   { setVista("news"); }
-
-  // Registramos la "API" hacia RootApp una sola vez
+  // API hacia RootApp
   const api = useMemo(() => ({
-    mostrarTodo: handleMostrarTodo,
-    novedades: handleNovedades,
+    mostrarTodo: () => setVista("all"),
+    novedades:   () => setVista("news"),
   }), []);
   useEffect(() => { registerApi?.(api); }, [registerApi, api]);
 
   const debeMostrarTabla = vista !== "welcome";
-  console.log("[ENV RAW]", import.meta.env);
 
   return (
     <div className="app">
-      {/* Encabezado lo pinta RootApp: NO renderizarlo aquí */}
-
       <main className="contenido">
         <Buscador valor={busqueda} onCambio={onBuscar} onLimpiar={onLimpiar} />
 
         {!debeMostrarTabla ? (
           <div style={{ textAlign: 'center', marginTop: 48 }}>
             <h1 style={{ fontSize: '3rem', margin: 0 }}>Bienvenidos</h1>
-            {loadingPrefetch && <p style={{ opacity: 0.7 }}>Sincronizando datos…</p>}
-            {errorPrefetch && <p style={{ color: 'crimson' }}>Trabajando con caché / {errorPrefetch}</p>}
+            {loading && <p style={{ opacity: 0.7 }}>Sincronizando datos…</p>}
+            {error && <p style={{ color: 'crimson' }}>Error: {error}</p>}
           </div>
         ) : (
           <TablaDatos
-            rowsPrefetch={Array.isArray(prefetched) ? prefetched : null}
+            rowsPrefetch={filtered}                // ← tu prop actual
             busqueda={vista === "search" ? busqueda : ""}
             modo={vista === "news" ? "news" : "all"}
+            onCrear={handleCrear}                  // ← pasá handlers si tu UI de CRUD los usa
+            onEditar={handleEditar}
+            onEliminar={handleEliminar}
+            loading={loading}
           />
         )}
       </main>
