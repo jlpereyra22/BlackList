@@ -1,38 +1,39 @@
 // src/queries/Observados.js
-import { normalizarConjunto } from '../lib/normalizar';
+import { normalizarConjunto } from "../lib/normalizar";
 import {
   getFirestore,
   collection,
   getDocs,
   query,
   orderBy,
+  where,
   addDoc,
   updateDoc,
   deleteDoc,
   doc,
   serverTimestamp,
   onSnapshot,
-} from 'firebase/firestore';
-import { app } from '../firebase';
+} from "firebase/firestore";
+import { app } from "../firebase";
 
 const db = getFirestore(app);
 // ⚠️ EXACTO como está en Firestore (O mayúscula)
-const COL = 'Observados';
+const COL = "Observados";
 
-// -- helpers: mapear campos a un shape estándar para la UI
+// -- helper: mapear campos a un shape estándar para la UI
 function mapDoc(d) {
   const data = d.data() || {};
   // soportar snake_case y camelCase
   const createdAt = data.created_at ?? data.createdAt ?? null;
   const updatedAt = data.updated_at ?? data.updatedAt ?? null;
-  const owner     = data.owner_uid  ?? data.owner     ?? null;
+  const owner = data.owner_uid ?? data.owner ?? null;
 
   return {
     id: d.id,
-    persona: data.persona ?? '',
-    oficina: data.oficina ?? '',
-    socios: data.socios ?? '',
-    observaciones: data.observaciones ?? '',
+    persona: data.persona ?? "",
+    oficina: data.oficina ?? "",
+    socios: data.socios ?? "",
+    observaciones: data.observaciones ?? "",
     fecha: data.fecha ?? null,
     createdAt,
     updatedAt,
@@ -42,50 +43,105 @@ function mapDoc(d) {
   };
 }
 
-// ===== Lectura =====
+// ===== Lectura puntual (vista pública u otros usos) =====
 export async function getAll() {
-  // primero intentamos ordenar por created_at (como está en tu DB),
-  // si falla (p.ej. índice), hacemos fallback sin orden
+  // primero intentamos ordenar por created_at (como está en tu DB);
+  // si falla (p.ej. índice de campo único), hacemos fallback sin orden
   try {
-    const q = query(collection(db, COL), orderBy('created_at', 'desc'));
-    const snap = await getDocs(q);
+    const qRef = query(collection(db, COL), orderBy("created_at", "desc"));
+    const snap = await getDocs(qRef);
     const items = snap.docs.map(mapDoc);
     return normalizarConjunto(items);
-  } catch (e) {
+  } catch (_e) {
     const snap = await getDocs(collection(db, COL));
     const items = snap.docs.map(mapDoc);
-    // ordenar en memoria por si no pudimos con Firestore
-    items.sort((a, b) => (b.createdAt?.toMillis?.() ?? 0) - (a.createdAt?.toMillis?.() ?? 0));
+    items.sort(
+      (a, b) => (b.createdAt?.toMillis?.() ?? 0) - (a.createdAt?.toMillis?.() ?? 0)
+    );
     return normalizarConjunto(items);
   }
 }
 
-// Tiempo real (opcional)
+// ===== Tiempo real (todos) para la vista pública =====
+// ===== Tiempo real (todos) para la vista pública =====
 export function subscribeAll(cb) {
-  // si querés orden server-side, asegurate de tener el campo created_at y el índice
-  const qRef = query(collection(db, COL), orderBy('created_at', 'desc'));
-  return onSnapshot(qRef, (snap) => {
-    const items = snap.docs.map(mapDoc);
-    cb(normalizarConjunto(items));
-  }, (err) => {
-    // fallback sin orden si la suscripción falla por índice
-    const unsub = onSnapshot(collection(db, COL), (snap2) => {
-      const items = snap2.docs.map(mapDoc).sort(
-        (a, b) => (b.createdAt?.toMillis?.() ?? 0) - (a.createdAt?.toMillis?.() ?? 0)
-      );
-      cb(normalizarConjunto(items));
-    });
-    return () => unsub();
-  });
+  const qRef = query(collection(db, COL), orderBy("created_at", "desc"));
+
+  let unsub = onSnapshot(
+    qRef,
+    (snap) => {
+      const items = snap.docs.map(mapDoc);
+      cb(items); // ← sin normalizar
+    },
+    (_err) => {
+      // fallback simple: sin orderBy y ordenamos en memoria
+      unsub?.();
+      unsub = onSnapshot(collection(db, COL), (snap2) => {
+        const items = snap2.docs.map(mapDoc);
+        items.sort(
+          (a, b) =>
+            (b.createdAt?.toMillis?.() ?? 0) -
+            (a.createdAt?.toMillis?.() ?? 0)
+        );
+        cb(items); // ← sin normalizar
+      });
+    }
+  );
+  return () => unsub && unsub();
+}
+
+
+// ===== Tiempo real (solo del owner) para /admin =====
+// IMPORTANTE: en /admin devolvemos items crudos (sin normalizador) para evitar errores
+export function subscribeMine(ownerUid, cb) {
+  const qIndexed = query(
+    collection(db, COL),
+    where("owner_uid", "==", ownerUid),
+    orderBy("created_at", "desc")
+  );
+  const qFallback = query(
+    collection(db, COL),
+    where("owner_uid", "==", ownerUid)
+  );
+
+  // Intento con índice compuesto; si falla, paso a fallback
+  let activeUnsub = onSnapshot(
+    qIndexed,
+    (snap) => {
+      const items = snap.docs.map(mapDoc);
+      cb(items); // ← sin normalizar, ya ordenados
+    },
+    (err) => {
+      if (err?.code === "failed-precondition") {
+        // índice aún no disponible → fallback sin orderBy
+        activeUnsub?.();
+        activeUnsub = onSnapshot(qFallback, (snap2) => {
+          const items = snap2.docs.map(mapDoc);
+          items.sort(
+            (a, b) =>
+              (b.createdAt?.toMillis?.() ?? 0) -
+              (a.createdAt?.toMillis?.() ?? 0)
+          );
+          cb(items); // ← sin normalizar
+        });
+      } else {
+        console.error("subscribeMine error:", err);
+      }
+    }
+  );
+
+  return () => {
+    if (activeUnsub) activeUnsub();
+  };
 }
 
 // ===== Escritura (consistente con tu DB actual: snake_case) =====
 export async function create(item, { owner } = {}) {
   const payload = {
-    persona: item.persona ?? '',
-    oficina: item.oficina ?? '',
-    socios: item.socios ?? '',
-    observaciones: item.observaciones ?? '',
+    persona: item.persona ?? "",
+    oficina: item.oficina ?? "",
+    socios: item.socios ?? "",
+    observaciones: item.observaciones ?? "",
     fecha: item.fecha ?? null,
     owner_uid: owner ?? null,
     created_at: serverTimestamp(),

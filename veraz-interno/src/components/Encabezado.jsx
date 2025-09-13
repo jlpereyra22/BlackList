@@ -1,10 +1,12 @@
 import { useEffect, useRef, useState } from "react";
 import { useAuth } from "../auth/AuthProvider";
+import { useNavigate, Link } from "react-router-dom";
 import "../style/Encabezado.css";
 
 export default function Encabezado({ onMostrarTodo, onNovedades, ready = false }) {
   const [open, setOpen] = useState(false);
   const menuRef = useRef(null);
+  const navigate = useNavigate();
 
   const { user, signOut } = useAuth();
 
@@ -22,13 +24,22 @@ export default function Encabezado({ onMostrarTodo, onNovedades, ready = false }
 
   return (
     <header className="encabezado">
-      <h1>Veraz Interno</h1>
+      <h1>
+        <Link to="/" className="encabezado__logo">Veraz Interno</Link>
+      </h1>
 
       {/* Acciones + usuario (desktop) */}
       <div className="enc-right desktop-only">
         <div className="enc-actions">
           <button onClick={onMostrarTodo} disabled={!ready}>Mostrar todo</button>
           <button onClick={onNovedades}   disabled={!ready}>Novedades (últimos 5)</button>
+          <button
+            onClick={() => navigate("/admin")}
+            disabled={!user}
+            title={!user ? "Inicia sesión para administrar" : "Ir al panel de administración"}
+          >
+            Administrar
+          </button>
         </div>
 
         <div className="usergroup">
@@ -62,6 +73,14 @@ export default function Encabezado({ onMostrarTodo, onNovedades, ready = false }
           <div className="dropdown" role="menu">
             <button role="menuitem" onClick={callAndClose(onMostrarTodo)}>Mostrar todo</button>
             <button role="menuitem" onClick={callAndClose(onNovedades)}>Novedades (últimos 5)</button>
+            <button
+              role="menuitem"
+              onClick={callAndClose(() => navigate("/admin"))}
+              disabled={!user}
+              title={!user ? "Inicia sesión para administrar" : "Ir al panel de administración"}
+            >
+              Administrar
+            </button>
             <hr className="dropdown__sep" />
             <button role="menuitem" className="dropdown__danger" onClick={() => { setOpen(false); signOut(); }}>
               Salir
