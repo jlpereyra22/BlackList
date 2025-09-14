@@ -1,217 +1,81 @@
-import { useEffect, useMemo, useRef, useState } from "react";
-import { obtenerObservados } from "../queries/Observados";
-import RenderTabla from "./RenderTabla";
-import "../style/TablaDatos.css";
+// src/components/TablaDatos.jsx
+import { useEffect, useMemo, useState } from "react";
 
-function formatearFechaDDMMYYYY(ts, fallback = "—") {
-  if (!Number.isFinite(ts)) return fallback;
-  const d = new Date(ts);
-  const dd = String(d.getDate()).padStart(2, "0");
-  const mm = String(d.getMonth() + 1).padStart(2, "0");
-  const yy = d.getFullYear();
-  return `${dd}/${mm}/${yy}`;
+function toDateStr(v) {
+  if (!v) return "—";
+  // Firestore Timestamp { seconds }
+  if (typeof v === "object" && v?.seconds) {
+    const d = new Date(v.seconds * 1000);
+    return d.toISOString().split("T")[0];
+  }
+  // Date
+  if (v instanceof Date) return v.toISOString().split("T")[0];
+  // String aceptada
+  if (typeof v === "string") {
+    const s = v.trim();
+    if (/^\d{4}-\d{2}-\d{2}$/.test(s)) return s;
+    return s; // deja lo que venga
+  }
+  return "—";
 }
 
-/** Canoniza texto: sin tildes, sin espacios ni signos, minúsculas. */
-function canonTxt(v) {
-  if (v == null) return "";
-  return String(v)
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .toLowerCase()
-    .replace(/[\s\W_]+/g, "");
+function s(v) {
+  const t = (v ?? "").toString().trim();
+  return t.length ? t : "—";
 }
 
-const CABECERAS = [
-  { key: "persona",       label: "Persona",       sortable: true  },
-  { key: "observaciones", label: "Observaciones", sortable: false },
-  { key: "socios",        label: "Socios",        sortable: false },
-  { key: "oficina",       label: "Oficina",       sortable: true  },
-  { key: "fecha",         label: "Fecha",         sortable: true  },
-];
+export default function TablaDatos({
+  rowsPrefetch = [],
+  busqueda = "",
+  modo = "all",          // "all" | "news"
+  onCrear,
+  onEditar,
+  onEliminar,
+  loading = false,
+}) {
+  const [rows, setRows] = useState([]);
 
-export default function TablaDatos({ busqueda, modo = "all", rowsPrefetch = null }) {
-  const source = Array.isArray(rowsPrefetch) ? "local" : "remote";
-  const isNews = modo === "news";
-
-  const [page, setPage] = useState(1);
-  const pageSize = isNews ? 5 : 10;
-
-  const [sortKey, setSortKey] = useState("fecha");
-  const [sortDir, setSortDir] = useState("desc");
-
-  useEffect(() => { setPage(1); }, [busqueda, isNews, sortKey, sortDir]);
-
-  // ------- REMOTO -------
-  const [filasRemote, setFilasRemote] = useState([]);
-  const [totalRemote, setTotalRemote] = useState(0);
-  const [cargando, setCargando] = useState(false);
-  const [error, setError] = useState("");
-  const abortRef = useRef(null);
-
+  // ✅ Mantener sincronizado con la prop
   useEffect(() => {
-    if (source === "local") return;
+    setRows(Array.isArray(rowsPrefetch) ? rowsPrefetch : []);
+  }, [rowsPrefetch]);
 
-    let cancelado = false;
-    (async () => {
-      try {
-        setCargando(true);
-        setError("");
-
-        if (abortRef.current) abortRef.current.abort();
-        const ctrl = new AbortController();
-        abortRef.current = ctrl;
-
-        const sortApi = `${sortKey}_${sortDir}`;
-        const resp = await obtenerObservados({
-          page: isNews ? 1 : page,
-          pageSize,
-          sort: isNews ? "fecha_desc" : sortApi,
-          q: busqueda?.trim() ?? "",
-          signal: ctrl.signal,
-        });
-
-        if (cancelado) return;
-        if (resp?.ok) {
-          setFilasRemote(resp.items || []);
-          setTotalRemote(resp.total || 0);
-        } else {
-          setFilasRemote([]);
-          setTotalRemote(0);
-          setError(resp?.error || "error");
-        }
-      } catch {
-        if (!cancelado) {
-          setFilasRemote([]);
-          setTotalRemote(0);
-          setError("network");
-        }
-      } finally {
-        if (!cancelado) setCargando(false);
-      }
-    })();
-
-    return () => {
-      cancelado = true;
-      if (abortRef.current) abortRef.current.abort();
-    };
-  }, [page, pageSize, sortKey, sortDir, busqueda, isNews, source]);
-
-  const totalPagesRemote = Math.max(1, Math.ceil(totalRemote / pageSize));
-  useEffect(() => {
-    if (source !== "remote" || isNews) return;
-    setPage((p) => Math.min(Math.max(1, p), totalPagesRemote));
-  }, [totalPagesRemote, pageSize, source, isNews]);
-
-  // ------- LOCAL -------
-  const datasetLocal = useMemo(() => {
-    if (source !== "local") return [];
-    let base = rowsPrefetch;
-
-    if (isNews) {
-      return [...base].sort((a, b) => (b.ts || 0) - (a.ts || 0)).slice(0, 5);
-    }
-
-    const qCanon = canonTxt(busqueda || "");
-    if (qCanon) {
-      base = base.filter((r) => {
-        const persona = canonTxt(r.persona);
-        const obs     = canonTxt(r.observaciones);
-        const oficina = canonTxt(r.oficina);
-        const socios  = canonTxt(Array.isArray(r.socios) ? r.socios.join(", ") : "");
-        return (
-          persona.includes(qCanon) ||
-          obs.includes(qCanon)     ||
-          oficina.includes(qCanon) ||
-          socios.includes(qCanon)
-        );
-      });
-    }
-
-    const factor = sortDir === "asc" ? 1 : -1;
-    return [...base].sort((a, b) => {
-      if (sortKey === "fecha") {
-        const A = Number.isFinite(a.ts) ? a.ts : -Infinity;
-        const B = Number.isFinite(b.ts) ? b.ts : -Infinity;
-        return (A - B) * factor;
-      }
-      const A = canonTxt(a[sortKey]);
-      const B = canonTxt(b[sortKey]);
-      return A.localeCompare(B) * factor;
-    });
-  }, [rowsPrefetch, source, isNews, busqueda, sortKey, sortDir]);
-
-  const totalLocal = datasetLocal.length;
-  const totalPagesLocal = Math.max(1, Math.ceil(totalLocal / pageSize));
-
-  useEffect(() => {
-    if (source !== "local" || isNews) return;
-    setPage((p) => Math.min(Math.max(1, p), totalPagesLocal));
-  }, [totalPagesLocal, source, isNews]);
-
-  const filasLocal = isNews
-    ? datasetLocal
-    : datasetLocal.slice((page - 1) * pageSize, page * pageSize);
-
-  // ------- DERIVADOS -------
-  if (source === "remote" && cargando)
-    return <p className="estado">Cargando…</p>;
-  if (source === "remote" && error)
-    return <p className="estado">Error: {error}</p>;
-
-  const filasRender = source === "local" ? filasLocal : filasRemote;
-  const totalRows   = source === "local" ? totalLocal : totalRemote;
-  const totalPages  = source === "local" ? totalPagesLocal : totalPagesRemote;
-
-  if (!filasRender.length) return <p className="estado">No hay datos cargados.</p>;
-
-  const canPrev = !isNews && page > 1;
-  const canNext = !isNews && page < totalPages;
-
-  const goPrev = () => setPage((p) => Math.max(1, p - 1));
-  const goNext = () => setPage((p) => Math.min(totalPages, p + 1));
-
-  const onClickHeader = (k) => {
-    if (isNews) return;
-    if (!CABECERAS.find((c) => c.key === k)?.sortable) return;
-    if (sortKey === k) setSortDir((d) => (d === "asc" ? "desc" : "asc"));
-    else { setSortKey(k); setSortDir("asc"); }
-    setPage(1);
-  };
-
-  const getRowKey = (r, i) =>
-    r.id ??
-    `${r.persona ?? ""}|${r.oficina ?? ""}|${Number.isFinite(r.ts) ? r.ts : ""}|${i}`;
-
-  const getCell = (r, key) => {
-    switch (key) {
-      case "socios":
-        return Array.isArray(r.socios) ? r.socios.join(", ") : "—";
-      case "fecha":
-        return Number.isFinite(r.ts) ? formatearFechaDDMMYYYY(r.ts) : "—";
-      default:
-        return r[key] || "—";
-    }
-  };
+  const data = useMemo(() => rows, [rows]);
 
   return (
-    <div className="tabla-wrap">
-      <RenderTabla
-        headers={CABECERAS}
-        rows={filasRender}
-        onHeaderClick={onClickHeader}
-        isNews={isNews}
-        getRowKey={getRowKey}
-        getCell={getCell}
-      />
-
-      {!isNews && (
-        <div className="paginacion">
-          <button className="btn" onClick={goPrev} disabled={!canPrev}>◀ Anterior</button>
-          <span className="info">Página {page} de {totalPages} (total {totalRows})</span>
-          <button className="btn" onClick={goNext} disabled={!canNext}>Siguiente ▶</button>
-        </div>
-      )}
+    <div style={{ overflowX: "auto" }}>
+      <table className="table">
+        <thead>
+          <tr>
+            <th>Persona</th>
+            <th>Observaciones</th>
+            <th>Socios</th>
+            <th>Oficina</th>
+            <th>Fecha</th>
+          </tr>
+        </thead>
+        <tbody>
+          {loading && (
+            <tr>
+              <td colSpan={5} className="empty">Cargando…</td>
+            </tr>
+          )}
+          {!loading && data.length === 0 && (
+            <tr>
+              <td colSpan={5} className="empty">Sin resultados</td>
+            </tr>
+          )}
+          {!loading && data.map(r => (
+            <tr key={r.id || `${r.persona}-${r.fecha}-${Math.random()}`}>
+              <td data-label="Persona">{s(r.persona)}</td>
+              <td data-label="Observaciones">{s(r.observaciones)}</td>
+              <td data-label="Socios">{s(r.socios)}</td>
+              <td data-label="Oficina">{s(r.oficina)}</td>
+              <td data-label="Fecha">{toDateStr(r.fecha)}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
     </div>
   );
 }
