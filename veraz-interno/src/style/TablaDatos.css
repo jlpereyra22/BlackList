@@ -1,118 +1,80 @@
-/* Contenedor de la tabla */
-.tabla-wrap {
-  margin-top: 16px;
+/* contenedor con scroll horizontal de respaldo */
+.tabla__wrap{
+  width:100%;
+  overflow-x:auto;
+  -webkit-overflow-scrolling: touch;
+  margin-top:16px;
 }
 
-/* Estados */
-.tabla-wrap .estado {
-  margin: 12px 0;
-  color: var(--muted);
-}
-
-/* Tabla */
-.tabla {
-  width: 100%;
+/* tabla base */
+.tabla{
+  width:100%;
   border-collapse: collapse;
   background: color-mix(in srgb, var(--bg) 85%, black);
-  border: 1px solid var(--border);
-  border-radius: 8px;
-  overflow: hidden; /* redondeo real */
+  border:1px solid var(--border);
+  border-radius:8px;
+  overflow:hidden;
 }
-
-.tabla th,
-.tabla td {
-  padding: 10px 12px;
-  border-right: 1px solid var(--border);
-  border-bottom: 1px solid var(--border);
+.tabla th, .tabla td{
+  padding:10px 12px;
+  border-right:1px solid var(--border);
+  border-bottom:1px solid var(--border);
+  text-align:left; vertical-align:top;
 }
-
-.tabla th:last-child,
-.tabla td:last-child {
-  border-right: none;
-}
-
-.tabla thead th {
+.tabla th:last-child, .tabla td:last-child{ border-right:none; }
+.tabla thead th{
   background: color-mix(in srgb, var(--panel) 85%, black);
-  color: var(--text);
-  font-weight: 600;
-  font-size: 15px;
-  position: sticky;  /* útil si el contenedor scrollea */
-  top: 0;
-  z-index: 1;
+  position: sticky; top:0; z-index:1;
+}
+.tabla tbody tr:nth-child(even){ background: color-mix(in srgb, var(--bg) 80%, black); }
+.empty{ text-align:center; padding:18px 12px; color:var(--muted); }
+
+/* filas "tap" en mobile: indicar que son clickeables */
+.row-tap{}
+
+/* responsive: en mobile escondemos 3 columnas y habilitamos tap */
+@media (max-width: 640px){
+  .tabla .hide-mobile{ display:none; }
+  .tabla tbody tr.row-tap{ cursor:pointer; }
+  .tabla tbody tr.row-tap:active{ transform: translateY(0.5px); }
 }
 
-.tabla td {
-  font-size: 15px;
-  font-weight: 400;
+/* ======================
+   Popup móvil de detalle
+   ====================== */
+.tabla-modal__backdrop{
+  position:fixed; inset:0;
+  background: rgba(0,0,0,.6);
+  display:flex; align-items:center; justify-content:center;
+  padding:16px;
+  z-index: 40;
 }
-
-.tabla tbody tr:nth-child(even) {
-  background: color-mix(in srgb, var(--bg) 80%, black);
-}
-
-.tabla tbody tr:hover {
-  background: color-mix(in srgb, var(--bg) 70%, black);
-}
-
-/* Cabeceras clickeables */
-.tabla th.sortable {
-  cursor: pointer;
-}
-
-.tabla th.sortable:hover {
-  background: color-mix(in srgb, var(--panel) 75%, black);
-}
-
-.tabla th.sortable::after {
-  content: " ⮁";
-  opacity: .7;
-  font-weight: 400;
-}
-
-/* Paginación */
-.paginacion {
-  margin-top: 12px;
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  color: var(--text);
-}
-
-.paginacion .btn {
-  padding: 8px 12px;
-  border: 1px solid var(--border);
+.tabla-modal{
+  width:min(520px, 100%);
   background: var(--panel);
   color: var(--text);
-  border-radius: 6px;
-  cursor: pointer;
-  font-size: 14px;
-  font-weight: 500;
-  transition: background .15s ease, opacity .15s ease;
+  border:1px solid var(--border);
+  border-radius:14px;
+  padding:16px;
+  box-shadow: 0 12px 40px rgba(0,0,0,.45);
 }
-
-.paginacion .btn:hover:not(:disabled) {
+.tabla-modal h3{
+  margin:0 0 12px 0;
+  font-size:18px; font-weight:700;
+}
+.tabla-modal__grid{
+  display:grid;
+  grid-template-columns: 1fr 2fr;
+  gap:10px 12px;
+  margin-bottom:16px;
+}
+.tabla-modal__grid span{ opacity:.8; }
+.tabla-modal__btn{
+  width:100%;
+  padding:10px 12px;
+  border:1px solid var(--border);
   background: var(--hover);
-}
-
-.paginacion .btn:disabled {
-  opacity: .5;
-  cursor: not-allowed;
-}
-
-.paginacion .info {
-  opacity: .9;
-  font-size: 14px;
-}
-
-
-/* Solo phones: esconde columnas >= 3 y hace la fila clickeable. */
-@media (max-width: 640px) {
-  .tabla th.hide-mobile,
-  .tabla td.hide-mobile {
-    display: none;
-  }
-
-  .tabla td, .tabla th { padding: 10px; font-size: 14px; }
-  .tabla tbody tr.row-mobile { cursor: pointer; }
-  .tabla tbody tr.row-mobile:active { transform: translateY(0.5px); }
+  color: var(--text);
+  border-radius:10px;
+  font-weight:600;
 }
