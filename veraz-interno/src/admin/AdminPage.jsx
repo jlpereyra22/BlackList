@@ -3,6 +3,9 @@ import { useAuth } from "../auth/AuthProvider";
 import { create, update, remove, subscribeMine } from "../queries/Observados";
 import AddEditForm from "./AddEditForm";
 import MyRecordsTable from "./MyRecordsTable";
+import "../style/admin.css";
+import "../style/admin.table.css";
+
 
 export default function AdminPage() {
   const { user } = useAuth();

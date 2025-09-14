@@ -1,0 +1,51 @@
+/* Tabla base */
+.table{
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 14px;
+}
+.table thead th{
+  text-align: left;
+  font-weight: 600;
+  color: var(--muted);
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--border);
+  background: #1b1b2b;
+}
+.table tbody td{
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--border);
+}
+.table tbody tr:hover td{
+  background: rgba(255,255,255,.03);
+}
+
+/* Acciones */
+.cell-actions{
+  display: flex;
+  gap: 6px;
+}
+
+/* Responsive: tarjetas */
+@media (max-width: 640px){
+  .table thead{ display: none; }
+  .table, .table tbody, .table tr, .table td{ display: block; width: 100%; }
+  .table tr{
+    background: #1b1b2b;
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 6px;
+    margin-bottom: 8px;
+  }
+  .table td{
+    border: none;
+    padding: 8px 10px;
+  }
+  .table td[data-label]::before{
+    content: attr(data-label);
+    display: block;
+    font-weight: 600;
+    color: var(--muted);
+    margin-bottom: 4px;
+  }
+}
