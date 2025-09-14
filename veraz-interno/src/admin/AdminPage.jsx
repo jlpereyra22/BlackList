@@ -1,11 +1,11 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { useAuth } from "../auth/AuthProvider";
 import { create, update, remove, subscribeMine } from "../queries/Observados";
 import AddEditForm from "./AddEditForm";
 import MyRecordsTable from "./MyRecordsTable";
-import "../style/admin.css";
-import "../style/admin.table.css";
 
+// estilos del módulo
+import "../style/admin.css";
 
 export default function AdminPage() {
   const { user } = useAuth();
@@ -23,7 +23,6 @@ export default function AdminPage() {
     return () => unsub && unsub();
   }, [user]);
 
-  // alta
   async function handleCreate(values) {
     setError("");
     try {
@@ -33,7 +32,6 @@ export default function AdminPage() {
     }
   }
 
-  // edición
   async function handleUpdate(id, patch) {
     setError("");
     try {
@@ -43,7 +41,6 @@ export default function AdminPage() {
     }
   }
 
-  // borrado
   async function handleDelete(id) {
     setError("");
     try {
@@ -57,7 +54,7 @@ export default function AdminPage() {
     <main className="admin__page">
       <section className="admin__header">
         <h2>Panel de administración</h2>
-        <p>Solo ves y editás **tus** asientos.</p>
+       
       </section>
 
       <section className="admin__form">
@@ -69,7 +66,7 @@ export default function AdminPage() {
         <h3>Mis asientos</h3>
         {error && <p style={{ color: "crimson" }}>{error}</p>}
         {loading ? (
-          <p>cargando…</p>
+          <div className="empty">Cargando…</div>
         ) : (
           <MyRecordsTable rows={rows} onUpdate={handleUpdate} onDelete={handleDelete} />
         )}

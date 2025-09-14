@@ -169,3 +169,53 @@
 @media (min-width: 768px) and (max-width: 1100px){
   .form__grid{ grid-template-columns: 1fr 1fr; } /* 2 columnas → más aire */
 }
+
+
+/* ===== Acordeón mobile para "Mis asientos" ===== */
+.acc-list{ display:none; }
+@media (max-width:640px){
+  .table{ display:none; }
+  .acc-list{ display:block; }
+}
+
+.acc{
+  background:#1b1b2b;
+  border:1px solid var(--border);
+  border-radius:12px;
+  margin-bottom:10px;
+  overflow:hidden;
+}
+.acc summary{
+  list-style:none;
+  cursor:pointer;
+  padding:12px 14px;
+  font-weight:600;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:10px;
+}
+.acc summary::-webkit-details-marker{ display:none; }
+.acc__chev{
+  transition: transform .2s ease;
+  opacity:.8;
+}
+.acc[open] .acc__chev{ transform: rotate(90deg); }
+
+.acc__body{
+  padding:10px 14px 12px;
+  border-top:1px solid var(--border);
+}
+.acc__grid{
+  display:grid;
+  grid-template-columns: 1fr;
+  gap:10px;
+}
+.acc__item b{ color:var(--muted); display:block; margin-bottom:4px; }
+
+.acc__actions{
+  display:flex;
+  gap:8px;
+  justify-content:flex-end;
+  margin-top:6px;
+}

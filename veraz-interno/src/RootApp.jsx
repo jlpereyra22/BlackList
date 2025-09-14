@@ -5,6 +5,7 @@ import { useAuth } from "./auth/AuthProvider";
 
 import LoginPage from "./pages/LoginPage";
 import Encabezado from "./components/Encabezado";
+import Pie from "./components/Pie";
 import App from "./App";
 import Protected from "./routes/Protected";
 import AdminPage from "./admin/AdminPage";
@@ -17,30 +18,38 @@ export default function RootApp() {
 
   return (
     <BrowserRouter>
-      {/* Header fijo en todas las vistas (si querés mostrarlo sólo logueado, lo movemos adentro) */}
-      {user && (
-        <Encabezado
-          ready={true}
-          onMostrarTodo={() => appApiRef.current.mostrarTodo()}
-          onNovedades={() => appApiRef.current.novedades()}
-        />
-      )}
+      {/* Usamos tu shell global .app + .contenido para que el footer quede al fondo */}
+      <div className="app">
+        {user && (
+          <Encabezado
+            ready={true}
+            onMostrarTodo={() => appApiRef.current.mostrarTodo()}
+            onNovedades={() => appApiRef.current.novedades()}
+          />
+        )}
 
-      <Routes>
-        {/* Login público */}
-        <Route path="/login" element={user ? <Navigate to="/" replace /> : <LoginPage />} />
+        <main className="contenido">
+          <Routes>
+            <Route
+              path="/login"
+              element={user ? <Navigate to="/" replace /> : <LoginPage />}
+            />
 
-        {/* Público principal (requiere login para ver datos? hoy tu App ya chequea user internamente) */}
-        <Route path="/" element={<App registerApi={(api) => Object.assign(appApiRef.current, api)} />} />
+            <Route
+              path="/"
+              element={<App registerApi={(api) => Object.assign(appApiRef.current, api)} />}
+            />
 
-        {/* /admin protegido */}
-        <Route element={<Protected />}>
-          <Route path="/admin" element={<AdminPage />} />
-        </Route>
+            <Route element={<Protected />}>
+              <Route path="/admin" element={<AdminPage />} />
+            </Route>
 
-        {/* fallback */}
-        <Route path="*" element={<Navigate to="/" replace />} />
-      </Routes>
+            <Route path="*" element={<Navigate to="/" replace />} />
+          </Routes>
+        </main>
+
+        <Pie />
+      </div>
     </BrowserRouter>
   );
 }
