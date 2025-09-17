@@ -46,7 +46,7 @@ export default function AddEditForm({ initial=EMPTY, onSubmit, submitLabel="Guar
       <div className="form__grid">
         <input className="input" name="persona" value={form.persona} onChange={onChange} placeholder="Persona" required />
         <input className="input" name="oficina" value={form.oficina} onChange={onChange} placeholder="Oficina" />
-        <input className="input" name="socios" value={form.socios} onChange={onChange} placeholder="Socios" />
+        <input className="input" name="socios" value={form.socios} onChange={onChange} placeholder="Empresa/Personas Relacionadas" />
         <input className="input" type="date" name="fecha" value={form.fecha} readOnly disabled />
       </div>
 
